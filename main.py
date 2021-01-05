@@ -82,7 +82,7 @@ async def main():
 			                       'Referer': 'https://dashboard.stripe.com/test/payments'
 		                       }
 		                       ) as response:
-			print(await response.text())
+			print('Related response: ', await response.read())
 
 
 if __name__ == "__main__":

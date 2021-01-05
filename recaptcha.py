@@ -1,4 +1,6 @@
 import time
+
+import backoff as backoff
 import requests
 
 
@@ -6,6 +8,9 @@ class Captcha:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
+    @backoff.on_exception(backoff.expo,
+                          Exception,
+                          max_tries=3)
     def solve(self, url: str, google_key: str, hcaptcha: bool = False, invisible: bool = False):
         method, key_type = ('hcaptcha', 'sitekey') if hcaptcha else ('userrecaptcha', 'googlekey')
         with requests.get(
