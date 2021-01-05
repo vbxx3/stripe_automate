@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 uvloop.install()
 
+# Environment vars
 DATA_SITEKEY = '6LezRwYTAAAAAClbeZahYjeSYHsbwpzjEQ0hQ1jB'
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
 EMAIL = os.getenv('EMAIL')
@@ -29,6 +30,7 @@ async def main():
 			await response.read()
 			unesc_csrf = str(response.headers).split('stripe.csrf=')[1].split('; domain=stripe.com')[0]
 			csrf = parse.unquote(unesc_csrf)
+		# Defining login payload
 		payload = {
 			"email": EMAIL,
 			"password": PASSWORD,
@@ -42,6 +44,7 @@ async def main():
 			"source": "main_login",
 			"has_platform_authenticator": False
 		}
+		# Defining headers
 		headers = {
 			'origin': 'https://dashboard.stripe.com',
 			'referer': 'https://dashboard.stripe.com/login',
@@ -53,6 +56,7 @@ async def main():
 		                        data=payload) as response:
 			response = await response.json()
 			if response.get('error_type', '') == 'need_captcha':
+				# Solve captcha if it raised
 				captcha = Captcha(CAPTCHA_KEY)
 				g_response = captcha.solve('https://dashboard.stripe.com/login',
 				                           DATA_SITEKEY)
@@ -68,6 +72,8 @@ async def main():
 					print(f'Session API Key: {api_key}')
 					print(f'for email {response["email"]}')
 					print()
+		# Next steps to get Risk Insights
+		# stripe-account header will be flexible later
 		async with session.get(f'https://dashboard.stripe.com/v1/events?related_object={PAYMENT_ID}',  # Will be modfied later
 		                       headers={
 			                       'Authorization': f'Bearer {api_key}',
