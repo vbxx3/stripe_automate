@@ -1,3 +1,5 @@
+import os
+
 from recaptcha import Captcha
 
 import uvloop
@@ -5,15 +7,17 @@ import asyncio
 
 from aiohttp import ClientSession
 from urllib import parse
+from dotenv import load_dotenv
 
+load_dotenv()
 uvloop.install()
 
 DATA_SITEKEY = '6LezRwYTAAAAAClbeZahYjeSYHsbwpzjEQ0hQ1jB'
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
-EMAIL = ""
-PASSWORD = ""
-CAPTCHA_KEY = ''
-PAYMENT_ID = ''
+EMAIL = os.getenv('EMAIL')
+PASSWORD = os.getenv('PASSWORD')
+CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
+PAYMENT_ID = os.getenv('PAYMENT_ID')
 
 
 async def main():
