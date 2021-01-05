@@ -65,13 +65,13 @@ async def main():
 				                        headers=headers,
 				                        data=payload) as response:
 					response = await response.json()
-					csrf = response['csrf_token']
-					api_key = response['session_api_key']
-					print("\n================ Credentials ================")
-					print(f'CSRF Token: {csrf}')
-					print(f'Session API Key: {api_key}')
-					print(f'for email {response["email"]}')
-					print()
+			csrf = response['csrf_token']
+			api_key = response['session_api_key']
+			print("\n================ Credentials ================")
+			print(f'CSRF Token: {csrf}')
+			print(f'Session API Key: {api_key}')
+			print(f'for email {response["email"]}')
+			print()
 		# Next steps to get Risk Insights
 		# stripe-account header will be flexible later
 		async with session.get(f'https://dashboard.stripe.com/v1/events?related_object={PAYMENT_ID}',  # Will be modfied later
