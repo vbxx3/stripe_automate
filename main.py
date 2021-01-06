@@ -20,7 +20,6 @@ USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
-PAYMENT_ID = os.getenv('PAYMENT_ID')
 
 CHARGE = "ch_1I646ZL5RkOYbcxuPRIFM3BX"
 CREATED = 1609809179
@@ -83,7 +82,6 @@ async def main(charge: str,
 			print(f'Session cookie: {session_cookie}')
 			print(f'for email {response["email"]}')
 			print()
-		print({"variables": {"time": created, "input": {"charge": f'"{charge}"'}}})
 		payload = {"operationName": "RadarAllSignalsForChargeQuery",
 		           "variables": {"time": created, "input": {"charge": f'"{charge}"'}},
 		           "query": "query RadarAllSignalsForChargeQuery($time: Int!, $input: ApiRadarSignalsSignalsDataInput) "
