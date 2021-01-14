@@ -164,6 +164,7 @@ async def test():
     #     [CHARGE, CREATED],
     #     [CHARGE, CREATED]
     # ])
+    print(result)
     await loader.close()
 
 
