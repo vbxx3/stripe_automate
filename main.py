@@ -21,6 +21,7 @@ EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
 
+# Values for test purposes
 CHARGE = "ch_1I646ZL5RkOYbcxuPRIFM3BX"
 CREATED = 1609809179
 
@@ -30,10 +31,11 @@ class InsightLoader:
                  email: str,
                  password: str,
                  captcha_key: str,
-                 data_sitekey: str = '6LezRwYTAAAAAClbeZahYjeSYHsbwpzjEQ0hQ1jB'):
+                 data_sitekey: str):
         self.email = email
         self.password = password
         self.captcha_solver = Captcha(captcha_key)
+        self.captcha_key = data_sitekey
 
         self.__is_logged_in = False
         self.__session = None
@@ -76,7 +78,7 @@ class InsightLoader:
             response = await response.json()
             if response.get('error_type', '') == 'need_captcha':
                 # Solve captcha if it raised
-                captcha = Captcha(CAPTCHA_KEY)
+                captcha = Captcha(self.captcha_key)
                 g_response = captcha.solve('https://dashboard.stripe.com/login',
                                            DATA_SITEKEY)
                 payload['g-recaptcha-response'] = g_response
@@ -127,7 +129,7 @@ class InsightLoader:
 
 
 async def test():
-    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY)
+    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY, DATA_SITEKEY)
     await loader.sign_in()
     # for one - await loader.load_one(charge, created)
     result = await loader.load_many([
