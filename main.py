@@ -16,7 +16,6 @@ uvloop.install()
 
 # Environment vars
 DATA_SITEKEY = '6LezRwYTAAAAAClbeZahYjeSYHsbwpzjEQ0hQ1jB'
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
 EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
@@ -45,7 +44,8 @@ class InsightLoader:
 
     async def sign_in(self):
         session = ClientSession(headers={
-            'User-Agent': USER_AGENT
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                          ' Chrome/87.0.4280.88 Safari/537.36'
         })
         async with session.get('https://dashboard.stripe.com/login',
                                ) as response:
