@@ -20,6 +20,7 @@ USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
+STRIPE_ACCOUNT = os.getenv('STRIPE_ACCOUNT')
 
 # Values for test purposes
 CHARGE = "ch_1I646ZL5RkOYbcxuPRIFM3BX"
@@ -31,16 +32,19 @@ class InsightLoader:
                  email: str,
                  password: str,
                  captcha_key: str,
-                 data_sitekey: str):
+                 data_sitekey: str,
+                 stripe_account: str):
         self.email = email
         self.password = password
         self.captcha_solver = Captcha(captcha_key)
-        self.captcha_key = data_sitekey
+        self.data_sitekey = data_sitekey
+        self.__stripe_account = stripe_account
 
         self.__is_logged_in = False
         self.__session = None
         self.__csrf = None
         self.__session_cookie = None
+        self.__api_key = None
 
     async def sign_in(self):
         session = ClientSession(headers={
@@ -78,20 +82,21 @@ class InsightLoader:
             response = await response.json()
             if response.get('error_type', '') == 'need_captcha':
                 # Solve captcha if it raised
-                captcha = Captcha(self.captcha_key)
+                captcha = Captcha(CAPTCHA_KEY)
                 g_response = captcha.solve('https://dashboard.stripe.com/login',
-                                           DATA_SITEKEY)
+                                           self.data_sitekey)
                 payload['g-recaptcha-response'] = g_response
-                async with session.post('https://dashboard.stripe.com/ajax/sessions',
-                                        headers=headers,
-                                        data=payload) as response:
-                    self.__session_cookie = str(response.headers).split('session=')[1].split('; domain')[0]
-                    response = await response.json()
+            async with session.post('https://dashboard.stripe.com/ajax/sessions',
+                                    headers=headers,
+                                    data=payload) as response:
+                self.__session_cookie = str(response.headers).split('session=')[1].split('; domain')[0]
+                response = await response.json()
             if "csrf_token" not in response:
                 print(response)
                 raise Exception('Unexpected response')
             self.__session = session
             self.__csrf = response['csrf_token']
+            self.__api_key = response['session_api_key']
             self.__is_logged_in = True
 
     async def load_one(self,
@@ -100,6 +105,9 @@ class InsightLoader:
         if not self.__is_logged_in:
             raise Exception('Stripe was never logged in')
         payload = risk_graphql(created, charge)
+        cookies = {
+            'session': self.__session_cookie
+        }
         async with self.__session.post('https://dashboard.stripe.com/ajax/graphql',
                                        json=payload,
                                        headers={
@@ -109,11 +117,30 @@ class InsightLoader:
                                                       'pi_1I646ZL5RkOYbcxulqDwH6RR',
                                            'Origin': 'https://dashboard.stripe.com'
                                        },
-                                       cookies={
-                                           'session': self.__session_cookie
-                                       }
+                                       cookies=cookies
                                        ) as response:
-            return await response.json()
+
+            risk_insights = await response.json()
+        async with self.__session.get('https://dashboard.stripe.com/v1/search/radar/related_payments?'
+                                      f'charge_id={charge}&count=100&offset=0',
+                                      headers={
+                                          'x-stripe-csrf-token': self.__csrf,
+                                          'stripe-livemode': 'false',
+                                          'stripe-account': self.__stripe_account,
+                                          'Referer': 'https://dashboard.stripe.com/test/payments/'
+                                                     'pi_1I646ZL5RkOYbcxulqDwH6RR',
+                                          'Origin': 'https://dashboard.stripe.com',
+                                          'Authorization': f'Bearer {self.__api_key}'
+                                      },
+                                      cookies={
+                                          'session': cookies
+                                      }
+                                      ) as response:
+            related_payments = await response.json()
+        return {
+            'risk_insights': risk_insights,
+            'related_payments': related_payments
+        }
 
     async def load_many(self,
                         payments: list,
@@ -129,15 +156,14 @@ class InsightLoader:
 
 
 async def test():
-    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY, DATA_SITEKEY)
+    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY, DATA_SITEKEY, STRIPE_ACCOUNT)
     await loader.sign_in()
-    # for one - await loader.load_one(charge, created)
-    result = await loader.load_many([
-        [CHARGE, CREATED],
-        [CHARGE, CREATED],
-        [CHARGE, CREATED]
-    ])
-    print(result)
+    result = await loader.load_one(CHARGE, CREATED)
+    # result = await loader.load_many([
+    #     [CHARGE, CREATED],
+    #     [CHARGE, CREATED],
+    #     [CHARGE, CREATED]
+    # ])
     await loader.close()
 
 
