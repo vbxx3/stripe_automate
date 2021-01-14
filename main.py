@@ -20,7 +20,6 @@ USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 EMAIL = os.getenv('EMAIL')
 PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
-STRIPE_ACCOUNT = os.getenv('STRIPE_ACCOUNT')
 
 # Values for test purposes
 CHARGE = "ch_1I646ZL5RkOYbcxuPRIFM3BX"
@@ -32,13 +31,11 @@ class InsightLoader:
                  email: str,
                  password: str,
                  captcha_key: str,
-                 data_sitekey: str,
-                 stripe_account: str):
+                 data_sitekey: str):
         self.email = email
         self.password = password
         self.captcha_solver = Captcha(captcha_key)
         self.data_sitekey = data_sitekey
-        self.__stripe_account = stripe_account
 
         self.__is_logged_in = False
         self.__session = None
@@ -121,12 +118,19 @@ class InsightLoader:
                                        ) as response:
 
             risk_insights = await response.json()
+            if risk_insights['errors'] is not None:
+                return {
+                    'risk_insights': None,
+                    'related_payments': None,
+                    'error': 'No such payment'
+                }
+            stripe_account = risk_insights['data']['currentMerchant']['id']
         async with self.__session.get('https://dashboard.stripe.com/v1/search/radar/related_payments?'
                                       f'charge_id={charge}&count=100&offset=0',
                                       headers={
                                           'x-stripe-csrf-token': self.__csrf,
                                           'stripe-livemode': 'false',
-                                          'stripe-account': self.__stripe_account,
+                                          'stripe-account': stripe_account,
                                           'Referer': 'https://dashboard.stripe.com/test/payments/'
                                                      'pi_1I646ZL5RkOYbcxulqDwH6RR',
                                           'Origin': 'https://dashboard.stripe.com',
@@ -156,7 +160,7 @@ class InsightLoader:
 
 
 async def test():
-    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY, DATA_SITEKEY, STRIPE_ACCOUNT)
+    loader = InsightLoader(EMAIL, PASSWORD, CAPTCHA_KEY, DATA_SITEKEY)
     await loader.sign_in()
     result = await loader.load_one(CHARGE, CREATED)
     # result = await loader.load_many([
