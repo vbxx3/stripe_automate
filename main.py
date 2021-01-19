@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 
 from payloads import risk_graphql
 from recaptcha import Captcha
@@ -21,8 +22,8 @@ PASSWORD = os.getenv('PASSWORD')
 CAPTCHA_KEY = os.getenv('CAPTCHA_KEY')
 
 # Values for test purposes
-CHARGE = "ch_1I646ZL5RkOYbcxuPRIFM3BX"
-CREATED = 1609809179
+CHARGE = "ch_1IBF2gBbPvOGtj8fbh5p2DC9"
+CREATED = 1611042862
 
 
 class InsightLoader:
@@ -110,29 +111,39 @@ class InsightLoader:
                                        headers={
                                            'x-stripe-csrf-token': self.__csrf,
                                            'stripe-livemode': 'false',
-                                           'Referer': 'https://dashboard.stripe.com/test/payments/'
-                                                      'pi_1I646ZL5RkOYbcxulqDwH6RR',
                                            'Origin': 'https://dashboard.stripe.com'
                                        },
                                        cookies=cookies
                                        ) as response:
 
             risk_insights = await response.json()
-            if risk_insights['errors'] is not None:
-                return {
-                    'risk_insights': None,
-                    'related_payments': None,
-                    'error': 'No such payment'
-                }
             stripe_account = risk_insights['data']['currentMerchant']['id']
+            async with self.__session.post('https://dashboard.stripe.com/ajax/graphql',
+                                           json=payload,
+                                           headers={
+                                               'x-stripe-csrf-token': self.__csrf,
+                                               'stripe-livemode': 'true',
+                                               'stripe-account': stripe_account,
+                                               'Origin': 'https://dashboard.stripe.com'
+                                           },
+                                           cookies=cookies
+                                           ) as response:
+                risk_insights = await response.json()
+                if risk_insights['errors'] is not None:
+                    print('error')
+                    print(risk_insights)
+                    return {
+                        'risk_insights': None,
+                        'related_payments': None,
+                        'error': 'No such payment'
+                    }
+
         async with self.__session.get('https://dashboard.stripe.com/v1/search/radar/related_payments?'
                                       f'charge_id={charge}&count=100&offset=0',
                                       headers={
                                           'x-stripe-csrf-token': self.__csrf,
-                                          'stripe-livemode': 'false',
+                                          'stripe-livemode': 'true',
                                           'stripe-account': stripe_account,
-                                          'Referer': 'https://dashboard.stripe.com/test/payments/'
-                                                     'pi_1I646ZL5RkOYbcxulqDwH6RR',
                                           'Origin': 'https://dashboard.stripe.com',
                                           'Authorization': f'Bearer {self.__api_key}'
                                       },
@@ -168,7 +179,7 @@ async def test():
     #     [CHARGE, CREATED],
     #     [CHARGE, CREATED]
     # ])
-    print(result)
+    pprint(result)
     await loader.close()
 
 
